@@ -1,0 +1,16 @@
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: dubboprovider-route
+  namespace: dubbo-app
+spec:
+  hosts:
+  - dubboprovider
+  tcp:       #//使用tcp段
+  - route:
+    - destination:       
+       host: dubboprovider  #//service名称
+       port:          
+         number: 20880    #//service访问端口
+       subset: v1         #//负载版本号

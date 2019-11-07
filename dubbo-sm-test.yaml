@@ -1,0 +1,87 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dubboprovider-v1
+  namespace: dubbo-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dubboprovider       #//服务名
+      version: v1              #//deployment版本号
+  template:
+    metadata:
+      labels:
+        app: dubboprovider     #//服务名
+        version: v1            #//deployment版本号
+    spec:
+      containers:
+      #/*该镜像对所有用户公开，若使用自有镜像请先至容器镜像仓库上传镜像*/
+      - image: istio/examples-dubbo-provider:v1.0.1
+        imagePullPolicy: IfNotPresent
+        name: container-0
+        ports:
+        - containerPort: 20880      #//业务容器端口
+          protocol: TCP
+      imagePullSecrets:
+      - name: default-secret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dubboprovider    #//当前示例中dubboconsumer服务指定调用的service名字为dubboprovider
+  namespace: dubbo-app
+  labels:
+    app: dubboprovider   #//该标签值需与deploy的app标签一致
+spec:
+  ports:
+  - name: dubbo      #//dubbo协议，容器端口和访问端口均为20880
+    port: 20880      #//服务发布的访问端口。
+    protocol: TCP
+    targetPort: 20880  #//容器端口
+  type: ClusterIP
+  selector:
+    app: dubboprovider  #//该标签值需与deploy的app标签一致
+
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: dubboconsumer
+  namespace: dubbo-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dubboconsumer    #//与dubboconsumer的service的app标签一致
+  template:
+    metadata:
+      labels:
+        app: dubboconsumer  
+    spec:
+      containers:
+      #/*该镜像对所有用户公开，若使用自有镜像请先至容器镜像仓库上传镜像*/
+      - image: istio/examples-dubbo-consumer:v1.0.0 
+        imagePullPolicy: IfNotPresent
+        name: container-0
+        ports:
+        - containerPort: 8081  #//dubboconsumer的容器端口  
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dubboconsumer   
+  namespace: dubbo-app
+  labels:
+    app: dubboconsumer   
+spec:
+  ports:
+  - name: dubbo        #//dubboconsumer的端口为8081
+    port: 8081
+    protocol: TCP
+    targetPort: 8081
+  type: ClusterIP
+  selector:
+    app: dubboconsumer

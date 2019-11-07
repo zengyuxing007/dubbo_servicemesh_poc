@@ -1,0 +1,47 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: dubboprovider-dubbo-app
+  namespace: istio-system
+spec:
+  configPatches:
+  - applyTo: NETWORK_FILTER
+    match:
+      context: SIDECAR_OUTBOUND     #//用于配置dubbo协议的内部访问  
+      listener:
+        filter_chain:
+          filter:
+            name: envoy.tcp_proxy
+        name: {$serviceIP}_{$servicePort}    #//name的值为serviceIP_servicePort，指定作用的服务及其端口
+        port_number: $servicePort     #//dubboprovider的service的访问端口
+    patch:
+      operation: REMOVE
+  - applyTo: NETWORK_FILTER
+    match:
+      context: SIDECAR_OUTBOUND
+      listener:
+        filter_chain:
+          filter:
+            name: mixer
+        name: {$serviceIP}_{$servicePort}   
+        port_number: $servicePort        
+    patch:
+      operation: INSERT_AFTER
+      value:
+        config:
+          dubbo_filters:
+          - name: envoy.filters.dubbo.router
+          protocol_type: Dubbo
+          route_config:
+          - interface: .*       #//使用.*代表所有接口   
+            name: local_route
+            routes:
+            - match:
+                method:
+                  name:
+                    regex: .*
+              route:
+                cluster: $cluster                   #//用于指定路由的负载
+          serialization_type: Hessian2
+          stat_prefix: dubbo_incomming_stats
+        name: envoy.filters.network.dubbo_proxy

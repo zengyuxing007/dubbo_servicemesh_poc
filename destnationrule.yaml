@@ -1,0 +1,15 @@
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: dubboprovider-destination
+  namespace: dubbo-app
+spec:
+  host: dubboprovider
+  subsets:
+  - name: v1    #//dubboprovider的version版本
+    labels:
+      version: v1
+  trafficPolicy:
+    outlierDetection:
+      interval: 10m
