@@ -1,0 +1,27 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: dubboprovider-route
+  namespace: dubbo-app
+spec:
+  gateways:    #// gateway的名字.gateway命名空间.svc.cluster.local   
+  - dubboprovider-dubbo-app-gateway.istio-system.svc.cluster.local   
+  - mesh
+  hosts:
+  - dubboprovider
+  - www.dubbotest.com:20880
+  tcp:
+  - match:     
+    - port: 20880     #//gateway的监听端口
+    route:
+    - destination:
+        host: dubboprovider
+        port:
+          number: 20880      #//dubboprovider服务的访问端口
+        subset: v1
+  - route:
+    - destination:
+        host: dubboprovider
+        port:
+          number: 20880
+        subset: v1

@@ -1,0 +1,50 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: dubboprovider-dubbo-app-gateway
+  namespace: istio-system
+spec:
+  configPatches:
+  - applyTo: NETWORK_FILTER
+    match:
+      context: GATEWAY               #//用于配置dubbo协议的外部访问
+      listener:
+        filter_chain:
+          filter:
+            name: envoy.tcp_proxy
+        port_number: $outPort        #//ingressgateway的外部访问端口
+    patch:
+      operation: REMOVE
+  - applyTo: NETWORK_FILTER
+    match:
+      context: GATEWAY          #//用于配置dubbo协议的外部访问
+      listener:
+        filter_chain:
+          filter:
+            name: mixer
+        port_number: $outPort       
+    patch:
+      operation: INSERT_AFTER
+      value:
+        config:
+          dubbo_filters:
+          - name: envoy.filters.dubbo.router
+          protocol_type: Dubbo
+          route_config:
+          - interface: .*  #//使用.*表示所有接口
+            name: local_route
+            routes:
+            - match:
+                headers:                      #//必填：可用headers字段更精确的指定治理的服务
+                - name: k8s.namespace
+                  exact_match: dubboapp
+                - name: k8s.appname
+                  exact_match: dubboprovider
+                method:
+                  name:
+                    regex: .*
+              route:  
+                cluster: $cluster              #//用于指定路由的负载
+          serialization_type: Hessian2
+          stat_prefix: dubbo_incomming_stats
+        name: envoy.filters.network.dubbo_proxy

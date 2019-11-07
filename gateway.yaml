@@ -1,0 +1,15 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: dubboprovider-dubbo-app-gateway
+  namespace: istio-system
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  - hosts:
+    - www.dubbotest.com:20880   #//dubboconsumer访问dubboprovider时使用的域名和端口
+    port:
+      name: dubbo
+      number: 20880
+      protocol: tcp
